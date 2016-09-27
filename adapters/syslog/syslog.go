@@ -216,3 +216,7 @@ func (m *SyslogMessage) Timestamp() string {
 func (m *SyslogMessage) ContainerName() string {
 	return m.Message.Container.Name[1:]
 }
+
+func (m *SyslogMessage) ContainerShortID() string {
+	return m.Message.Container.ID[1:13]
+}
