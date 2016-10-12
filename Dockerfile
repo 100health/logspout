@@ -4,7 +4,7 @@ VOLUME /mnt/routes
 EXPOSE 80
 
 COPY . /src
-RUN cd /src && ./build.sh "$(cat VERSION)"
+RUN cd /src && ./build.sh "$(cat VERSION)"; \
 apk --no-cache add ca-certificates && update-ca-certificates
 
 ONBUILD COPY ./build.sh /src/build.sh
