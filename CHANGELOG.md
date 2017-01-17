@@ -5,11 +5,14 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 ### Added
-- Syslog template string can use ContainerShortId property to get a 12-character slice of the Docker ID.
+- Syslog template string can use ContainerShortId property to get a 12-character slice of the Docker ID. (No PR)
 
-- Container whitelisting can be enabled with the `INCLUDE_LABEL` env variable. Usage is similar to `EXCLUDE_LABEL`, but only containers with the specified label will be logged.
+- Container whitelisting can be enabled with the `INCLUDE_LABEL` env variable. Usage is similar to `EXCLUDE_LABEL`, but only containers with the specified label will be logged. (https://github.com/gliderlabs/logspout/pull/222)
+
+- Allow retry configuration via `RETRY_COUNT` environment variable (https://github.com/gliderlabs/logspout/pull/240)
 
 ### Removed
+- Don't delete the logstream after 1s connection timeout (https://github.com/gliderlabs/logspout/pull/235)
 
 ### Changed
 
