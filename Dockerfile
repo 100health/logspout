@@ -4,8 +4,7 @@ VOLUME /mnt/routes
 EXPOSE 80
 
 COPY . /src
-RUN cd /src && ./build.sh "$(cat VERSION)"; \
-apk --no-cache add ca-certificates && update-ca-certificates
+RUN cd /src && ./build.sh "$(cat VERSION)"
 
 ONBUILD COPY ./build.sh /src/build.sh
 ONBUILD COPY ./modules.go /src/modules.go
