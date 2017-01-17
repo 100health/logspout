@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - Don't delete the logstream after 1s connection timeout (https://github.com/gliderlabs/logspout/pull/235)
 
 ### Changed
+- Exits process if syslog reconnection fails. (No PR)
 
 ## [v3.1] - 2016-05-23
 ### Fixed

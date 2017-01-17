@@ -167,8 +167,8 @@ func (a *SyslogAdapter) reconnect() error {
 	}, retryCount)
 
 	if err != nil {
-		log.Println("syslog: reconnect failed")
-		return err
+		log.Println("syslog: reconnect failed. exiting...")
+		os.Exit(3)
 	}
 
 	return nil
