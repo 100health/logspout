@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 ### Added
+- Syslog template string can use ContainerShortId property to get a 12-character slice of the Docker ID.
+
+- Container whitelisting can be enabled with the `INCLUDE_LABEL` env variable. Usage is similar to `EXCLUDE_LABEL`, but only containers with the specified label will be logged.
 
 ### Removed
 
