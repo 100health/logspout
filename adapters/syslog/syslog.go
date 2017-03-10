@@ -228,5 +228,5 @@ func (m *SyslogMessage) ContainerName() string {
 }
 
 func (m *SyslogMessage) ContainerShortID() string {
-	return m.Message.Container.ID[1:13]
+	return m.Message.Container.ID[0:12]
 }
