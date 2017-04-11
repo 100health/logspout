@@ -14,12 +14,21 @@ import (
 	"syscall"
 
 	"github.com/gliderlabs/logspout/router"
+	"github.com/DataDog/datadog-go/statsd"
 )
 
 const defaultRetryCount = 10
 
 var hostname string
 var retryCount uint
+var datadogClient *statsd.Client
+
+func incr_metric(metric string) error {
+	if datadogClient == nil {
+		return nil
+	}
+	return datadogClient.Incr(metric, nil, 1)
+}
 
 func init() {
 	hostname, _ = os.Hostname()
@@ -29,6 +38,19 @@ func init() {
 		retryCount = defaultRetryCount
 	} else {
 		retryCount = uint(count)
+	}
+
+	datadogStatsdServer := getopt("DATADOG_STATSD_SERVER", "")
+	if datadogStatsdServer == "" {
+		fmt.Println("# datadog: disabled metric reporting (no DATADOG_STATSD_SERVER set)")
+	} else {
+		datadogClient, datadogErr := statsd.New(datadogStatsdServer)
+		if datadogErr == nil {
+			fmt.Printf("# datadog: connected to statsd server: %s\n", datadogStatsdServer)
+		} else {
+			fmt.Printf("# datadog: error connecting to statsd server %s: %s\n", datadogStatsdServer, datadogErr)
+		}
+		datadogClient.Namespace = "logspout"
 	}
 }
 
@@ -45,6 +67,12 @@ func NewSyslogAdapter(route *router.Route) (router.LogAdapter, error) {
 	if !found {
 		return nil, errors.New("bad transport: " + route.Adapter)
 	}
+
+	dogErr := incr_metric("connection_attempts")
+	if dogErr != nil {
+		log.Printf("datadog: Error incrementing connection_attempts metric: %s\n", dogErr)
+	}
+
 	conn, err := transport.Dial(route.Address, route.Options)
 	if err != nil {
 		return nil, err
@@ -108,6 +136,10 @@ func (a *SyslogAdapter) Stream(logstream chan *router.Message) {
 		}
 		_, err = a.conn.Write(buf)
 		if err != nil {
+			dogErr := incr_metric("send_errors")
+			if dogErr != nil {
+				log.Printf("datadog: Error incrementing send_errors metric: %s\n", dogErr)
+			}
 			log.Println("syslog:", err)
 			switch a.conn.(type) {
 			case *net.UDPConn:
@@ -126,6 +158,7 @@ func (a *SyslogAdapter) Stream(logstream chan *router.Message) {
 func (a *SyslogAdapter) retry(buf []byte, err error) error {
 	if opError, ok := err.(*net.OpError); ok {
 		if (opError.Temporary() && opError.Err != syscall.ECONNRESET) || opError.Timeout() {
+			log.Println("retrying...")
 			retryErr := a.retryTemporary(buf)
 			if retryErr == nil {
 				return nil
@@ -139,6 +172,12 @@ func (a *SyslogAdapter) retry(buf []byte, err error) error {
 func (a *SyslogAdapter) retryTemporary(buf []byte) error {
 	log.Printf("syslog: retrying tcp up to %v times\n", retryCount)
 	err := retryExp(func() error {
+
+		dogErr := incr_metric("send_attempts")
+		if dogErr != nil {
+			log.Printf("datadog: Error incrementing send_attempts metric: %s\n", dogErr)
+		}
+		log.Println("syslog: retrying...")
 		_, err := a.conn.Write(buf)
 		if err == nil {
 			log.Println("syslog: retry successful")
@@ -150,6 +189,10 @@ func (a *SyslogAdapter) retryTemporary(buf []byte) error {
 
 	if err != nil {
 		log.Println("syslog: retry failed")
+		dogErr := incr_metric("send_failures")
+		if dogErr != nil {
+			log.Printf("datadog: Error incrementing send_failures metric: %s\n", dogErr)
+		}
 		return err
 	}
 
@@ -159,6 +202,14 @@ func (a *SyslogAdapter) retryTemporary(buf []byte) error {
 func (a *SyslogAdapter) reconnect() error {
 	log.Printf("syslog: reconnecting up to %v times\n", retryCount)
 	err := retryExp(func() error {
+
+		dogErr := incr_metric("connection_attempts")
+		if dogErr != nil {
+			log.Printf("datadog: Error incrementing connection_attempts metric: %s\n", dogErr)
+		}
+
+		log.Println("syslog: reconnecting...")
+
 		conn, err := a.transport.Dial(a.route.Address, a.route.Options)
 		if err != nil {
 			return err
@@ -170,7 +221,13 @@ func (a *SyslogAdapter) reconnect() error {
 
 	if err != nil {
 		log.Println("syslog: reconnect failed. exiting...")
+		dogErr := incr_metric("connection_failures")
+		if dogErr != nil {
+			log.Printf("datadog: Error incrementing connection_failures metric: %s\n", dogErr)
+		}
 		os.Exit(3)
+	} else {
+		log.Println("syslog: reconnect succeeded.")
 	}
 
 	return nil
