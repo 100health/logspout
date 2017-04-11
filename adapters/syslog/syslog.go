@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"text/template"
 	"time"
+	"syscall"
 
 	"github.com/gliderlabs/logspout/router"
 )
@@ -124,7 +125,7 @@ func (a *SyslogAdapter) Stream(logstream chan *router.Message) {
 
 func (a *SyslogAdapter) retry(buf []byte, err error) error {
 	if opError, ok := err.(*net.OpError); ok {
-		if opError.Temporary() || opError.Timeout() {
+		if (opError.Temporary() && opError.Err != syscall.ECONNRESET) || opError.Timeout() {
 			retryErr := a.retryTemporary(buf)
 			if retryErr == nil {
 				return nil
