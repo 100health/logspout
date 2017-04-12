@@ -9,9 +9,9 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"syscall"
 	"text/template"
 	"time"
-	"syscall"
 
 	"github.com/gliderlabs/logspout/router"
 	"github.com/DataDog/datadog-go/statsd"
@@ -25,6 +25,7 @@ var datadogClient *statsd.Client
 
 func incr_metric(metric string) error {
 	if datadogClient == nil {
+		log.Printf("datadog: client is nil\n")
 		return nil
 	}
 	return datadogClient.Incr(metric, nil, 1)
@@ -44,13 +45,14 @@ func init() {
 	if datadogStatsdServer == "" {
 		fmt.Println("# datadog: disabled metric reporting (no DATADOG_STATSD_SERVER set)")
 	} else {
-		datadogClient, datadogErr := statsd.New(datadogStatsdServer)
+		client, datadogErr := statsd.New(datadogStatsdServer)
 		if datadogErr == nil {
-			fmt.Printf("# datadog: connected to statsd server: %s\n", datadogStatsdServer)
+			log.Printf("# datadog: connected to statsd server: %s\n", datadogStatsdServer)
 		} else {
-			fmt.Printf("# datadog: error connecting to statsd server %s: %s\n", datadogStatsdServer, datadogErr)
+			log.Printf("# datadog: error connecting to statsd server %s: %s\n", datadogStatsdServer, datadogErr)
 		}
-		datadogClient.Namespace = "logspout"
+		client.Namespace = "logspout."
+		datadogClient = client
 	}
 }
 
